@@ -1,0 +1,41 @@
+# Docker Compose Override for Trading Dashboard Development
+# Use this file for development-specific configurations
+
+version: '3.8'
+
+services:
+  trading_dashboard_dev:
+    build:
+      context: ../
+      dockerfile: Docker/Dockerfile
+      target: builder  # Stop at builder stage for development
+    container_name: trading_dashboard_dev
+    environment:
+      # Development environment variables
+      REACT_APP_API_BASE_URL: http://localhost:8002
+      REACT_APP_USER_SERVICE_URL: http://user_service:8002
+      REACT_APP_TRADE_SERVICE_URL: http://trade_service:8004
+      REACT_APP_ENVIRONMENT: development
+      REACT_APP_USE_MOCK_DATA: "true"
+      REACT_APP_ENABLE_SOCIAL_LOGIN: "true"
+      NODE_ENV: development
+      GENERATE_SOURCEMAP: "true"
+      FAST_REFRESH: "true"
+    command: ["npm", "start"]
+    ports:
+      - "3001:3000"  # Use different port for dev
+    volumes:
+      # Mount source code for hot reloading
+      - ../src:/app/src:ro
+      - ../public:/app/public:ro
+      - ../package.json:/app/package.json:ro
+    stdin_open: true
+    tty: true
+    depends_on:
+      - user_service
+    networks:
+      - backend-net
+
+networks:
+  backend-net:
+    external: true  # Use existing network from main docker-compose

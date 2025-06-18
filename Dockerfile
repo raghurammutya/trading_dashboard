@@ -1,22 +1,10 @@
-# trading_dashboard/Dockerfile
-FROM node:18-alpine
+# Redirect to the proper Dockerfile in Docker directory
+# This file exists for backward compatibility
+# The actual production Dockerfile is in Docker/Dockerfile
 
-WORKDIR /app
+FROM node:18-alpine AS redirect-notice
 
-# Copy package files
-COPY package*.json ./
-
-# Install dependencies
-RUN npm install
-
-# Copy source code
-COPY . .
-
-# Build the application
-RUN npm run build
-
-# Expose port
-EXPOSE 3000
-
-# Start the application
-CMD ["npm", "start"]
+RUN echo "⚠️  This Dockerfile is deprecated. Use Docker/Dockerfile instead." && \
+    echo "🔗 For production builds: docker build -f Docker/Dockerfile ." && \
+    echo "🔗 For development: use Docker/start-dev.sh" && \
+    exit 1

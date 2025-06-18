@@ -1,0 +1,34 @@
+# Trading Dashboard Dependencies Summary
+# This is a Node.js React application - dependencies are managed in package.json
+
+# Core Framework
+# react@^18.2.0
+# react-dom@^18.2.0
+# typescript@^4.9.5
+
+# UI Framework
+# antd@^5.1.0
+# @ant-design/icons@^5.0.0
+
+# Routing and State Management
+# react-router-dom@^6.6.0
+# react-query@^3.39.0
+
+# Build Tools
+# react-scripts@^5.0.1
+# @types/react@^18.0.0
+# @types/react-dom@^18.0.0
+
+# Development Dependencies
+# @types/node@^16.18.0
+# web-vitals@^2.1.0
+
+# Production Runtime
+# nginx:alpine (Docker base image)
+# node:18-alpine (Build stage)
+
+# Additional Notes:
+# - All JavaScript dependencies are defined in package.json
+# - Docker multi-stage build reduces final image size
+# - Nginx serves the built React application
+# - Environment variables configured at runtime
