@@ -1,0 +1,268 @@
+// src/App.tsx
+import React, { useState, useEffect } from 'react';
+import { QueryClient, QueryClientProvider } from 'react-query';
+import { Layout, Menu, Card, Statistic, Row, Col, Tabs, Typography, Alert, Button, Space, Switch } from 'antd';
+import {
+    DashboardOutlined,
+    UserOutlined,
+    TradingViewOutlined,
+    BankOutlined,
+    LineChartOutlined,
+    ReloadOutlined,
+    BugOutlined,
+    ApiOutlined
+} from '@ant-design/icons';
+import './App.css';
+import AccountOverview from './components/AccountOverview';
+import UserDashboard from './components/UserDashboard';
+import TradingInterface from './components/TradingInterface';
+import { config } from './config/environment';
+
+// Conditional imports based on mock mode
+const useTradeDataHooks = config.USE_MOCK_DATA
+    ? require('./hooks/useMockTradeData')
+    : require('./hooks/useTradeData');
+
+const { useAccounts, useTotalSummary } = useTradeDataHooks;
+
+const { Header, Sider, Content } = Layout;
+const { Title } = Typography;
+const { TabPane } = Tabs;
+
+// Create a client
+const queryClient = new QueryClient({
+    defaultOptions: {
+        queries: {
+            refetchInterval: config.REFRESH_INTERVAL,
+            staleTime: config.STALE_TIME,
+        },
+    },
+});
+
+const ORGANIZATION_ID = config.ORGANIZATION_ID;
+
+function App() {
+    return (
+        <QueryClientProvider client={queryClient}>
+            <TradingDashboard />
+        </QueryClientProvider>
+    );
+}
+
+function TradingDashboard() {
+    const [selectedMenuItem, setSelectedMenuItem] = useState('overview');
+    const [collapsed, setCollapsed] = useState(false);
+    const [mockMode, setMockMode] = useState(config.USE_MOCK_DATA);
+
+    const { data: accounts, isLoading: accountsLoading, refetch: refetchAccounts } = useAccounts(ORGANIZATION_ID);
+    const { data: summary, isLoading: summaryLoading } = useTotalSummary(ORGANIZATION_ID);
+
+    const handleRefresh = () => {
+        refetchAccounts();
+        queryClient.invalidateQueries();
+    };
+
+    const toggleMockMode = (checked: boolean) => {
+        setMockMode(checked);
+        // Note: In a real app, you'd need to reload or dynamically switch data sources
+        if (checked !== config.USE_MOCK_DATA) {
+            alert('To switch between mock and real data, please restart the application with the appropriate environment variable.');
+        }
+    };
+
+    const menuItems = [
+        {
+            key: 'overview',
+            icon: <DashboardOutlined />,
+            label: 'Overview',
+        },
+        {
+            key: 'accounts',
+            icon: <UserOutlined />,
+            label: 'Accounts',
+        },
+        {
+            key: 'trading',
+            icon: <TradingViewOutlined />,
+            label: 'Trading',
+        },
+        {
+            key: 'analytics',
+            icon: <LineChartOutlined />,
+            label: 'Analytics',
+        },
+    ];
+
+    const renderContent = () => {
+        switch (selectedMenuItem) {
+            case 'overview':
+                return <AccountOverview organizationId={ORGANIZATION_ID} />;
+            case 'accounts':
+                return (
+                    <Tabs defaultActiveKey="0" type="card">
+                        {accounts?.map((account: any, index: number) => (
+                            <TabPane tab={`${account.pseudo_account}`} key={index.toString()}>
+                                <UserDashboard
+                                    pseudoAccount={account.pseudo_account}
+                                    organizationId={ORGANIZATION_ID}
+                                />
+                            </TabPane>
+                        ))}
+                    </Tabs>
+                );
+            case 'trading':
+                return <TradingInterface organizationId={ORGANIZATION_ID} accounts={accounts || []} />;
+            case 'analytics':
+                return (
+                    <div style={{ padding: '20px' }}>
+                        <Alert
+                            message="Analytics Dashboard"
+                            description="Advanced analytics and reporting features coming soon..."
+                            type="info"
+                            showIcon
+                        />
+                    </div>
+                );
+            default:
+                return <AccountOverview organizationId={ORGANIZATION_ID} />;
+        }
+    };
+
+    return (
+        <Layout style={{ minHeight: '100vh' }}>
+            <Sider
+                collapsible
+                collapsed={collapsed}
+                onCollapse={setCollapsed}
+                style={{
+                    background: '#001529',
+                }}
+            >
+                <div style={{
+                    height: '64px',
+                    margin: '16px',
+                    background: 'rgba(255, 255, 255, 0.3)',
+                    borderRadius: '6px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'white',
+                    fontWeight: 'bold'
+                }}>
+                    {collapsed ? 'TD' : 'Trading Dashboard'}
+                </div>
+                <Menu
+                    theme="dark"
+                    defaultSelectedKeys={['overview']}
+                    mode="inline"
+                    items={menuItems}
+                    onClick={({ key }) => setSelectedMenuItem(key)}
+                />
+            </Sider>
+
+            <Layout>
+                <Header style={{
+                    padding: '0 24px',
+                    background: '#fff',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                }}>
+                    <Title level={3} style={{ margin: 0 }}>
+                        Multi-Account Trading Dashboard
+                        {config.USE_MOCK_DATA && (
+                            <span style={{
+                                fontSize: '14px',
+                                color: '#faad14',
+                                marginLeft: '8px',
+                                fontWeight: 'normal'
+                            }}>
+                                (DEMO MODE)
+                            </span>
+                        )}
+                    </Title>
+
+                    <Space>
+                        {/* Data Mode Toggle */}
+                        <Space align="center">
+                            <span style={{ fontSize: '12px', color: '#666' }}>
+                                {config.USE_MOCK_DATA ? 'Mock Data' : 'Live Data'}
+                            </span>
+                            <Switch
+                                checkedChildren={<BugOutlined />}
+                                unCheckedChildren={<ApiOutlined />}
+                                checked={mockMode}
+                                onChange={toggleMockMode}
+                                size="small"
+                            />
+                        </Space>
+
+                        {summary && (
+                            <Space size="large">
+                                <Statistic
+                                    title="Total P&L"
+                                    value={summary.totalPnL || 0}
+                                    precision={2}
+                                    valueStyle={{
+                                        color: (summary.totalPnL || 0) >= 0 ? '#3f8600' : '#cf1322',
+                                        fontSize: '16px'
+                                    }}
+                                    prefix="₹"
+                                />
+                                <Statistic
+                                    title="Available Margin"
+                                    value={summary.totalMargin || 0}
+                                    precision={2}
+                                    valueStyle={{ fontSize: '16px' }}
+                                    prefix="₹"
+                                />
+                                <Statistic
+                                    title="Active Accounts"
+                                    value={accounts?.length || 0}
+                                    valueStyle={{ fontSize: '16px' }}
+                                />
+                            </Space>
+                        )}
+
+                        <Button
+                            icon={<ReloadOutlined />}
+                            onClick={handleRefresh}
+                            loading={accountsLoading || summaryLoading}
+                        >
+                            Refresh
+                        </Button>
+                    </Space>
+                </Header>
+
+                <Content style={{
+                    margin: '24px 16px',
+                    padding: 24,
+                    background: '#f0f2f5',
+                    minHeight: 280,
+                    borderRadius: '6px'
+                }}>
+                    {/* Demo Mode Alert */}
+                    {config.USE_MOCK_DATA && (
+                        <Alert
+                            message="Demo Mode Active"
+                            description="You are viewing the dashboard with mock data. All trading operations are simulated and will not execute real trades."
+                            type="warning"
+                            showIcon
+                            style={{ marginBottom: '16px' }}
+                            action={
+                                <Button size="small" type="text">
+                                    Switch to Live Mode
+                                </Button>
+                            }
+                        />
+                    )}
+
+                    {renderContent()}
+                </Content>
+            </Layout>
+        </Layout>
+    );
+}
+
+export default App;
